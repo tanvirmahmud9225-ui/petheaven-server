@@ -7,11 +7,34 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require("jose-node-cjs-runtime");
 const port = process.env.PORT || 7000
 
 
 app.use(cors())
 app.use(express.json())
+
+
+const JWKS = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`))
+
+const verifyToken = async (req, res, next) => {
+    const authHeader = req?.headers.authorization
+    if (!authHeader) { return res.status(401).json({ message: "unauthorized" }) }
+
+
+
+    const token = authHeader.split(" ")[1]
+    if (!token) { return res.status(401).json({ message: "unauthorized" }) }
+
+    try {
+        const { payload } = await jwtVerify(token, JWKS)
+        req.user = payload;
+        next()
+    } catch (error) {
+        return res.status(403).json({ message: "Forbidden" })
+    }
+
+}
 
 
 const uri = process.env.MONGODB_URI
@@ -24,6 +47,10 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
+
+
+
+
 
 async function run() {
     try {
@@ -43,7 +70,7 @@ async function run() {
             res.send(result)
         })
 
-        app.get('/allpets/:petId', async (req, res) => {
+        app.get('/allpets/:petId', verifyToken, async (req, res) => {
             const petId = req.params.petId
             const result = await petsCollections.findOne({ _id: new ObjectId(petId) })
             res.send(result)
