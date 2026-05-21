@@ -66,7 +66,14 @@ async function run() {
 
             let cursor;
             if (search) {
-                cursor = petsCollections.find({ petName: { $regex: search, $options: 'i' } })
+                cursor = petsCollections.find({
+                    $or: [
+                        { petName: { $regex: search, $options: 'i' } },
+                        { breed: { $regex: search, $options: 'i' } },
+                        { vaccinationStatus: { $regex: search, $options: 'i' } },
+
+                    ]
+                })
             } else {
                 cursor = petsCollections.find()
             }
@@ -74,6 +81,14 @@ async function run() {
             const result = await cursor.toArray();
             res.send(result)
         })
+
+
+        app.post('/allpets', async (req, res) => {
+            const cursor = req.body;
+            const result = await petsCollections.insertOne(cursor);
+            res.send(result)
+        })
+
 
         app.get('/homepagepets', async (req, res) => {
             const result = await petsCollections.find().limit(6).toArray();
@@ -83,6 +98,13 @@ async function run() {
         app.get('/allpets/:petId', verifyToken, async (req, res) => {
             const petId = req.params.petId
             const result = await petsCollections.findOne({ _id: new ObjectId(petId) })
+            res.send(result)
+        })
+
+
+        app.delete('/allpets/:petId', async (req, res) => {
+            const petId = req.params.petId
+            const result = await petsCollections.deleteOne({ _id: new ObjectId(petId) })
             res.send(result)
         })
 
