@@ -59,9 +59,19 @@ async function run() {
 
         const database = client.db("petadopt");
         const petsCollections = database.collection("allpets")
+        const petRequestCollections = database.collection("petsRequest")
 
         app.get('/allpets', async (req, res) => {
-            const result = await petsCollections.find().toArray();
+            const { search } = req.query;
+
+            let cursor;
+            if (search) {
+                cursor = petsCollections.find({ petName: { $regex: search, $options: 'i' } })
+            } else {
+                cursor = petsCollections.find()
+            }
+
+            const result = await cursor.toArray();
             res.send(result)
         })
 
@@ -76,11 +86,43 @@ async function run() {
             res.send(result)
         })
 
+        app.post('/petrequest/:petId', async (req, res) => {
+
+            const { petId } = req.params;
+            const adoptData = req.body
+
+            const adoptRequest = await petsCollections.findOne({ _id: new ObjectId(petId) })
+            if (!adoptRequest) {
+                res.status(404).json({ message: "pet not found" })
+            }
+
+            await petsCollections.updateOne(
+                { _id: new ObjectId(petId) },
+                { $set: { status: "pending", updatedAt: new Date() } }
+            )
 
 
+            const result = await petRequestCollections.insertOne({
+                ...adoptData,
+                adoptAt: new Date(),
+            })
+            res.send(result)
+
+        })
+
+        app.get('/petrequest/:userId', async (req, res) => {
+            const { userId } = req.params;
+            const result = await petRequestCollections.find({ uerId: userId }).toArray()
+            res.send(result)
+
+        })
 
 
-
+        app.delete('/petrequest/:id', async (req, res) => {
+            const { id } = req.params;
+            const result = await petRequestCollections.deleteOne({ _id: new ObjectId(id) })
+            res.send(result)
+        })
 
 
 
