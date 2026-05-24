@@ -82,10 +82,32 @@ async function run() {
             res.send(result)
         })
 
-
+        //add pets
         app.post('/allpets', async (req, res) => {
             const cursor = req.body;
             const result = await petsCollections.insertOne(cursor);
+            res.send(result)
+        })
+
+        //approve request my listing
+        app.patch('/allpets/:id', async (req, res) => {
+            const { id } = req.params;
+            const { status } = req.body;
+            const result = await petsCollections.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { status: "Approved" } }
+            );
+            res.send(result)
+        })
+
+        //Edit pets
+        app.patch('/editpet/:id', async (req, res) => {
+            const { id } = req.params
+            const cursor = req.body;
+            const result = await petsCollections.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: cursor }
+            );
             res.send(result)
         })
 
@@ -95,6 +117,9 @@ async function run() {
             res.send(result)
         })
 
+
+
+        // detals of pets
         app.get('/allpets/:petId', verifyToken, async (req, res) => {
             const petId = req.params.petId
             const result = await petsCollections.findOne({ _id: new ObjectId(petId) })
@@ -102,39 +127,79 @@ async function run() {
         })
 
 
+
+
+
+
+
+        // all-pets collectiion delete
         app.delete('/allpets/:petId', async (req, res) => {
             const petId = req.params.petId
             const result = await petsCollections.deleteOne({ _id: new ObjectId(petId) })
             res.send(result)
         })
 
+
+
+
+        // adoption request
         app.post('/petrequest/:petId', async (req, res) => {
 
             const { petId } = req.params;
             const adoptData = req.body
 
-            const adoptRequest = await petsCollections.findOne({ _id: new ObjectId(petId) })
-            if (!adoptRequest) {
-                res.status(404).json({ message: "pet not found" })
+            try {
+                const adoptRequest = await petRequestCollections.findOne({ petId: petId, userId: adoptData?.userId })
+                if (adoptRequest) {
+                    return res.status(400).json({ message: "is already Requested" })
+                }
+
+                // await petsCollections.updateOne(
+                //     { _id: new ObjectId(petId) },
+                //     { $set: { status: "pending", updatedAt: new Date() } }
+                // )
+                const date = new Date();
+
+                const newDate = date.toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+
+
+                const result = await petRequestCollections.insertOne({
+                    ...adoptData,
+                    adoptAt: newDate,
+                })
+                res.json(result)
+            }
+            catch (error) {
+                res.status(500).json({ error: error.message })
             }
 
-            await petsCollections.updateOne(
-                { _id: new ObjectId(petId) },
-                { $set: { status: "pending", updatedAt: new Date() } }
-            )
 
-
-            const result = await petRequestCollections.insertOne({
-                ...adoptData,
-                adoptAt: new Date(),
-            })
-            res.send(result)
 
         })
 
+
+        // my listing
+        app.get('/mylisting/:userId', async (req, res) => {
+            const { userId } = req.params
+            const result = await petsCollections.find({ userId: userId }).toArray()
+            res.send(result)
+        })
+
+        // my request
         app.get('/petrequest/:userId', async (req, res) => {
             const { userId } = req.params;
-            const result = await petRequestCollections.find({ uerId: userId }).toArray()
+            const result = await petRequestCollections.find({ userId: userId }).toArray()
+            res.send(result)
+        })
+
+        // my listing request modal
+        app.get('/petrequestbyid/:petId', async (req, res) => {
+            const { petId } = req.params;
+            const result = await petRequestCollections.findOne({ petId: petId })
             res.send(result)
 
         })
