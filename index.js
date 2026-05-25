@@ -70,7 +70,7 @@ async function run() {
                     $or: [
                         { petName: { $regex: search, $options: 'i' } },
                         { breed: { $regex: search, $options: 'i' } },
-                        { vaccinationStatus: { $regex: search, $options: 'i' } },
+                        { species: { $regex: search, $options: 'i' } },
 
                     ]
                 })
@@ -93,9 +93,15 @@ async function run() {
         app.patch('/allpets/:id', async (req, res) => {
             const { id } = req.params;
             const { status } = req.body;
+
+            await petRequestCollections.updateOne(
+                { petId: id },
+                { $set: { status: "adopted" } }
+            )
+
             const result = await petsCollections.updateOne(
                 { _id: new ObjectId(id) },
-                { $set: { status: "Approved" } }
+                { $set: { status: "approved" } }
             );
             res.send(result)
         })
