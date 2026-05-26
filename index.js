@@ -101,10 +101,27 @@ async function run() {
 
             const result = await petsCollections.updateOne(
                 { _id: new ObjectId(id) },
-                { $set: { status: "approved" } }
+                { $set: { status: "adopted" } }
             );
             res.send(result)
         })
+
+        //rejected request my listing
+        app.patch('/allpets2/:rejectId', async (req, res) => {
+            const { rejectId } = req.params;
+            const { status } = req.body;
+
+
+            const result = await petRequestCollections.updateOne(
+                { petId: rejectId },
+                { $set: { status: "rejected" } }
+            )
+            res.send(result)
+        })
+
+
+
+
 
         //Edit pets
         app.patch('/editpet/:id', async (req, res) => {
