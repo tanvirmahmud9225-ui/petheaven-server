@@ -30,8 +30,12 @@ const verifyToken = async (req, res, next) => {
         const { payload } = await jwtVerify(token, JWKS)
         req.user = payload;
         next()
-    } catch (error) {
-        return res.status(403).json({ message: "Forbidden" })
+    }
+    catch (error) {
+        console.log(error)
+        return res.status(403).json({
+            message: error.message
+        })
     }
 
 }
@@ -55,7 +59,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         const database = client.db("petadopt");
         const petsCollections = database.collection("allpets")
@@ -143,7 +147,7 @@ async function run() {
 
 
         // detals of pets
-        app.get('/allpets/:petId', async (req, res) => {
+        app.get('/allpets/:petId', verifyToken, async (req, res) => {
             const petId = req.params.petId
             const result = await petsCollections.findOne({ _id: new ObjectId(petId) })
             res.send(result)
@@ -240,7 +244,7 @@ async function run() {
 
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
