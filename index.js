@@ -232,7 +232,7 @@ async function run() {
         })
 
 
-        app.delete('/petrequest/:id', verifyToken, async (req, res) => {
+        app.delete('/petrequest/:id', async (req, res) => {
             const { id } = req.params;
             const result = await petRequestCollections.deleteOne({ _id: new ObjectId(id) })
             res.send(result)
